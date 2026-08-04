@@ -38,6 +38,6 @@ cmake -B build .
 ```bash
 cmake --build build --config Release
 ```
-The above use command line for building the project, but you can also use graphical interface. I not remembering look at [UPB GFX configuration guide](https://ocw.cs.pub.ro/courses/pgapi/setup-framework) for more details.
+The above uses the command line for building the project, but you can also use the graphical interface. If not remembering, look at [UPB GFX configuration guide](https://ocw.cs.pub.ro/courses/pgapi/setup-framework) for more details.
 
 **Good luck with your implementation! If you have any questions, feel free to ask on Teams :)**
