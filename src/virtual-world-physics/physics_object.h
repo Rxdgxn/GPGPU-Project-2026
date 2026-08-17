@@ -19,6 +19,7 @@ struct PhysicsObject {
   float friction;
   float restitution;
   // If true, object doesn't move. Think where you may need this.
+  // most likely for the big cube (floor, walls, ceiling)
   bool isStatic;
 
   // Visual properties

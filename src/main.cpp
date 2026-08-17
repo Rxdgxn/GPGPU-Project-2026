@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 
   WindowProperties wp{};
   wp.selfDir = std::filesystem::absolute(argv[0]).parent_path().string();
-  wp.resolution = glm::ivec2(1920, 1080);
+  wp.resolution = glm::ivec2(1720, 960);
   wp.vSync = false;
   wp.name = "virtual-world-physics";
 

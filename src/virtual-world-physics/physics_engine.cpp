@@ -61,26 +61,43 @@ void PhysicsEngine::Update(float deltaTime) {
 
 void PhysicsEngine::ApplyGravity(float deltaTime) {
   // TODO
+  for (auto& obj : m_objects) {
+    obj.ApplyForce(m_gravity * obj.mass * deltaTime);
+  }
 }
 
 void PhysicsEngine::BroadPhase() {  
   // TODO
+  m_possiblePairs = GetPotentialCollisionPairs();
+  // Note: this should only make pairs of indices of objects which are in proximity (use bvh or octree)
 }
 
 
 std::vector<std::pair<size_t, size_t>>
 PhysicsEngine::GetPotentialCollisionPairs() {
   // TODO
-  return {};
+  std::vector<std::pair<size_t, size_t>> ret;
+
+  
+
+  return ret;
 }
 
 void PhysicsEngine::NarrowPhase() {
   // TODO
+  for (auto& [i, j] : m_possiblePairs) {
+    auto col = DetectCollision(i, j);
+
+    if (col.isValid) {
+      m_stats.detectedCollisions++;
+      ResolveCollision(i, j, col);
+    }
+  }
 }
 
 CollisionInfo PhysicsEngine::DetectCollision(size_t indexA, size_t indexB) {
   // TODO
-  return CollisionInfo{};
+  return ComputeBoxBoxCollision(indexA, indexB, m_objects[indexA].boundingVolume, m_objects[indexB].boundingVolume);
 }
 
 CollisionInfo
@@ -88,7 +105,9 @@ PhysicsEngine::ComputeBoxBoxCollision(size_t indexA, size_t indexB,
                                       const bounding_volume_t &boxA,
                                       const bounding_volume_t &boxB) {
   // TODO
-  return CollisionInfo{};
+  CollisionInfo col;
+
+  return col;
 }
 
 void PhysicsEngine::ResolveCollision(size_t indexA, size_t indexB,

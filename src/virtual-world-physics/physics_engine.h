@@ -66,6 +66,8 @@ private:
   bool m_useGPU;
   GPUCollisionDetector *m_gpuDetector = nullptr;
 
+  std::vector<std::pair<size_t, size_t>> m_possiblePairs;
+
   float m_accumulator{0.0f};
   // Repeat 8 times per second to ensure stable simulation, even with variable frame rates
   const float m_fixedDeltaTime{1.0f / 125.0f}; 
