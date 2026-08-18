@@ -23,9 +23,11 @@ void PhysicsEngine::Update(float deltaTime) {
   int subSteps = 0;
   while (m_accumulator >= m_fixedDeltaTime && subSteps < m_maxSubSteps) {
     ApplyGravity(m_fixedDeltaTime);
+
     for (auto &object : m_objects) {
       object.Integrate(m_fixedDeltaTime);
     }
+
     if (m_useGPU && m_gpuDetector) {
       try {
         auto collisions = m_gpuDetector->DetectCollisions(m_objects);
@@ -66,7 +68,7 @@ void PhysicsEngine::ApplyGravity(float deltaTime) {
   }
 }
 
-void PhysicsEngine::BroadPhase() {  
+void PhysicsEngine::BroadPhase() {
   // TODO
   m_possiblePairs = GetPotentialCollisionPairs();
   // Note: this should only make pairs of indices of objects which are in proximity (use bvh or octree)
