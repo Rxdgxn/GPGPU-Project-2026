@@ -71,16 +71,35 @@ void PhysicsEngine::ApplyGravity(float deltaTime) {
 void PhysicsEngine::BroadPhase() {
   // TODO
   m_possiblePairs = GetPotentialCollisionPairs();
-  // Note: this should only make pairs of indices of objects which are in proximity (use bvh or octree)
 }
 
 
-std::vector<std::pair<size_t, size_t>>
-PhysicsEngine::GetPotentialCollisionPairs() {
+CollisionPairs PhysicsEngine::GetPotentialCollisionPairs() {
   // TODO
-  std::vector<std::pair<size_t, size_t>> ret;
+  CollisionPairs ret;
 
-  
+  // TODO: maybe change the destructor so there isn't an extra pass each frame for transforming objects to leaves
+  const size_t n = m_objects.size();
+  auto leaves = new BVHNode* [n];
+
+  for (size_t i = 0; i < n; i++) {
+    leaves[i] = new BVHNode(&m_objects[i], i);
+  }
+
+  auto root = new BVHNode(leaves, n);
+
+  for (size_t i = 0; i < n; i++) {
+    std::vector<size_t> neighbors;
+    getCollisions(root, m_objects[i].boundingVolume, neighbors);
+
+    for (size_t j : neighbors) {
+      if (i < j) {
+        ret.push_back({i, j});
+      }
+    }
+  }
+
+  delete root;
 
   return ret;
 }
@@ -108,6 +127,7 @@ PhysicsEngine::ComputeBoxBoxCollision(size_t indexA, size_t indexB,
                                       const bounding_volume_t &boxB) {
   // TODO
   CollisionInfo col;
+  col.isValid = true;
 
   return col;
 }

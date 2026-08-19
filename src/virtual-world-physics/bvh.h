@@ -7,7 +7,7 @@
 namespace physics {
 
 // "merging" 2 volumes together
-bounding_volume_t encompassVolumes(const bounding_volume_t& a, const bounding_volume_t& b) {
+inline bounding_volume_t encompassVolumes(const bounding_volume_t& a, const bounding_volume_t& b) {
     auto minA = a.center - a.sizes;
     auto maxA = a.center + a.sizes;
     auto minB = b.center - b.sizes;
@@ -24,6 +24,7 @@ struct BVHNode {
     PhysicsObject *obj = nullptr; // non null only for leaves
     BVHNode *left = nullptr;
     BVHNode *right = nullptr;
+    size_t index = -1; // to work faster with the api
 
     bool isLeaf() {
         return left == nullptr && right == nullptr;
@@ -39,9 +40,10 @@ struct BVHNode {
         }
     }
 
-    BVHNode(PhysicsObject *o) {
+    BVHNode(PhysicsObject *o, size_t idx) {
         obj = o;
         aabb = o->boundingVolume;
+        index = idx;
     }
 
     // Note: this is mostly stolen from the workshop
@@ -76,4 +78,5 @@ struct BVHNode {
         }
     }
 };
+
 } // namespace physics

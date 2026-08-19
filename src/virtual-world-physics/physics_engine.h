@@ -3,6 +3,8 @@
 #include "physics_object.h"
 #include "virtual-world-physics/bounding_volume.h"
 #include "virtual-world-physics/physics_gpu.h"
+#include "bvh.h"
+#include "collision.h"
 #include <unordered_map>
 #include <vector>
 
@@ -12,6 +14,8 @@ namespace physics {
  * Data-oriented physics engine.
  * All physics objects are stored in a single vector for cache locality.
  */
+typedef std::vector<std::pair<size_t, size_t>> CollisionPairs;
+
 class PhysicsEngine {
 public:
   struct Statistics {
@@ -46,7 +50,7 @@ private:
 
   // Broad phase: spatial partitioning to eliminate non-colliding pairs
   void BroadPhase();
-  std::vector<std::pair<size_t, size_t>> GetPotentialCollisionPairs();
+  CollisionPairs GetPotentialCollisionPairs();
 
   // Narrow phase: precise collision detection
   void NarrowPhase();
@@ -59,6 +63,19 @@ private:
   void ResolveCollision(size_t indexA, size_t indexB,
                         const CollisionInfo &collision);
 
+  void getCollisions(BVHNode *root, const bounding_volume_t& queried, std::vector<size_t>& output) {
+    if (root->isLeaf()) {
+      output.push_back(root->index);
+      return;
+    }
+
+    if (Intersects(root->left->aabb, queried))
+      getCollisions(root->left, queried, output);
+    if (Intersects(root->right->aabb, queried))
+      getCollisions(root->right, queried, output);
+}
+
+
 private:
   std::vector<PhysicsObject> m_objects;
   glm::vec3 m_gravity{0.0f, -9.81f, 0.0f};
@@ -66,7 +83,7 @@ private:
   bool m_useGPU;
   GPUCollisionDetector *m_gpuDetector = nullptr;
 
-  std::vector<std::pair<size_t, size_t>> m_possiblePairs;
+  CollisionPairs m_possiblePairs;
 
   float m_accumulator{0.0f};
   // Repeat 8 times per second to ensure stable simulation, even with variable frame rates
