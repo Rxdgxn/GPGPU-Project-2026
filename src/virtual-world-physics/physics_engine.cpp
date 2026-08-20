@@ -46,7 +46,11 @@ void PhysicsEngine::Update(float deltaTime) {
       }
     } else {
       BroadPhase();
-      NarrowPhase();
+
+      // Multi pass narrow phase to properly distribute impulses (helps against the jitter)
+      for (int i = 0; i < 8; i++) {
+        NarrowPhase();
+      }
     }
 
     m_accumulator -= m_fixedDeltaTime;
@@ -62,20 +66,17 @@ void PhysicsEngine::Update(float deltaTime) {
 }
 
 void PhysicsEngine::ApplyGravity(float deltaTime) {
-  // TODO
   for (auto& obj : m_objects) {
-    obj.ApplyForce(m_gravity * obj.mass * deltaTime);
+    obj.ApplyForce(m_gravity * obj.mass);
   }
 }
 
 void PhysicsEngine::BroadPhase() {
-  // TODO
   m_possiblePairs = GetPotentialCollisionPairs();
 }
 
 
 CollisionPairs PhysicsEngine::GetPotentialCollisionPairs() {
-  // TODO
   CollisionPairs ret;
 
   // TODO: maybe change the destructor so there isn't an extra pass each frame for transforming objects to leaves
@@ -105,10 +106,10 @@ CollisionPairs PhysicsEngine::GetPotentialCollisionPairs() {
 }
 
 void PhysicsEngine::NarrowPhase() {
-  // TODO
   for (auto& [i, j] : m_possiblePairs) {
     auto col = DetectCollision(i, j);
 
+    // This is technically redundant while using AABBs, since the objects are the AABBs themselves
     if (col.isValid) {
       m_stats.detectedCollisions++;
       ResolveCollision(i, j, col);
@@ -117,24 +118,103 @@ void PhysicsEngine::NarrowPhase() {
 }
 
 CollisionInfo PhysicsEngine::DetectCollision(size_t indexA, size_t indexB) {
-  // TODO
   return ComputeBoxBoxCollision(indexA, indexB, m_objects[indexA].boundingVolume, m_objects[indexB].boundingVolume);
 }
 
-CollisionInfo
-PhysicsEngine::ComputeBoxBoxCollision(size_t indexA, size_t indexB,
+CollisionInfo PhysicsEngine::ComputeBoxBoxCollision(size_t indexA, size_t indexB,
                                       const bounding_volume_t &boxA,
                                       const bounding_volume_t &boxB) {
-  // TODO
   CollisionInfo col;
-  col.isValid = true;
+  col.indexA = indexA;
+  col.indexB = indexB;
 
+  auto delta = boxB.center - boxA.center;
+  auto overlap = (boxA.sizes + boxB.sizes) - glm::abs(delta);
+
+  if (overlap.x < overlap.y && overlap.x < overlap.z) {
+    col.normal = glm::vec3(delta.x < 0.0f ? -1.0f : 1.0f, 0.0f, 0.0f);
+    col.penetration = overlap.x;
+  } else if (overlap.y < overlap.z) {
+    col.normal = glm::vec3(0.0f, delta.y < 0.0f ? -1.0f : 1.0f, 0.0f);
+    col.penetration = overlap.y;
+  } else {
+    col.normal = glm::vec3(0.0f, 0.0f, delta.z < 0.0f ? -1.0f : 1.0f);
+    col.penetration = overlap.z;
+  }
+
+  col.isValid = true;
   return col;
 }
 
 void PhysicsEngine::ResolveCollision(size_t indexA, size_t indexB,
                                      const CollisionInfo &collision) {
-  // TODO
+
+  PhysicsObject &A = m_objects[indexA];
+  PhysicsObject &B = m_objects[indexB];
+
+  float invMassA = A.isStatic ? 0.0f : 1.0f / A.mass;
+  float invMassB = B.isStatic ? 0.0f : 1.0f / B.mass;
+  float invMassSum = invMassA + invMassB;
+
+  if (invMassSum == 0.0f) return;
+
+  auto& normal = collision.normal;
+
+  // 1. Separation (positional correction)
+  float slop = 0.001f; // Slop threshold prevents jitter from tiny sub-millimeter overlaps
+  float percent = 0.8f; // Percentage of overlap to fix per step
+  float correctedPenetration = std::max(collision.penetration - slop, 0.0f) * percent;
+
+  auto correction = correctedPenetration / invMassSum * normal;
+  
+  A.position -= correction * invMassA;
+  B.position += correction * invMassB;
+
+  A.UpdateBoundingVolume();
+  B.UpdateBoundingVolume();
+
+  // 2. Bounce (normal impulse)
+  auto relativeVelocity = B.velocity - A.velocity;
+  float velAlongNormal = glm::dot(relativeVelocity, normal);
+
+  // If they are already moving apart, no bounce
+  if (velAlongNormal > 0.0f) {
+    return;
+  }
+
+  float e = std::min(A.restitution, B.restitution);
+
+  // Threshold to stop micro-bouncing on flat surfaces
+  if (std::abs(velAlongNormal) < 0.2f) {
+    e = 0.0f;
+  }
+
+  float j = -(1.0f + e) * velAlongNormal / invMassSum;
+  auto normalImpulse = j * normal;
+
+  A.ApplyImpulse(-normalImpulse);
+  B.ApplyImpulse(normalImpulse);
+
+  // 3. Friction impulse
+  relativeVelocity = B.velocity - A.velocity;
+  velAlongNormal = glm::dot(relativeVelocity, normal);
+
+  auto tangentVelocity = relativeVelocity - velAlongNormal * normal;
+
+  if (glm::dot(tangentVelocity, tangentVelocity) < 1e-8f) {
+    return;
+  }
+  
+  auto tangent = glm::normalize(tangentVelocity);
+  float jt = -glm::dot(relativeVelocity, tangent) / invMassSum;
+
+  float mu = 0.5f * (A.friction + B.friction);
+  jt = std::clamp(jt, -j * mu, j * mu);
+
+  auto frictionImpulse = jt * tangent;
+
+  A.ApplyImpulse(-frictionImpulse);
+  B.ApplyImpulse(frictionImpulse);
 }
 
 void PhysicsEngine::Init(const glm::vec3 &gravity, bool useGpu) {
