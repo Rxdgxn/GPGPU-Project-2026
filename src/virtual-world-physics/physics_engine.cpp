@@ -101,6 +101,7 @@ CollisionPairs PhysicsEngine::GetPotentialCollisionPairs() {
   }
 
   delete root;
+  delete[] leaves;
 
   return ret;
 }

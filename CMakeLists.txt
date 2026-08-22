@@ -224,7 +224,7 @@ target_compile_definitions(${target_name} PRIVATE ${GFXF_CXX_DEFS} GFXF_USE_CUDA
 # Add compile options (specific to this project)
 # Recommended reading: so@a/23995391/5922876
 if (MSVC)
-    set(GFXF_CXX_FLAGS  /W4 /WX-)
+    set(GFXF_CXX_FLAGS /W4 /WX- /Zc:preprocessor)
     # TODO(developer): Maybe address these warnings, see discussion below.
     set(GFXF_CXX_FLAGS  ${GFXF_CXX_FLAGS} /wd4100 /wd4458 /wd4189)
 else()
@@ -249,6 +249,7 @@ endif()
 
 target_compile_options(${target_name} PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:${GFXF_CXX_FLAGS}>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/Zc:preprocessor>
 )
 
 set_target_properties(${target_name} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

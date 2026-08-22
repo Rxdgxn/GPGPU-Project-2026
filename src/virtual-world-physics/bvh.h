@@ -7,17 +7,6 @@
 namespace physics {
 
 // "merging" 2 volumes together
-inline bounding_volume_t encompassVolumes(const bounding_volume_t& a, const bounding_volume_t& b) {
-    auto minA = a.center - a.sizes;
-    auto maxA = a.center + a.sizes;
-    auto minB = b.center - b.sizes;
-    auto maxB = b.center + b.sizes;
-
-    auto minC = min(minA, minB);
-    auto maxC = max(maxA, maxB);
-
-    return {(minC + maxC) * 0.5f, (maxC - minC) * 0.5f};
-}
 
 struct BVHNode {
     bounding_volume_t aabb;
